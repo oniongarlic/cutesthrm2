@@ -12,6 +12,7 @@ public:
     explicit STHrm2(QObject *parent = 0);
 
     bool start();
+    bool stop();
 
 private slots:
     void readSocket();

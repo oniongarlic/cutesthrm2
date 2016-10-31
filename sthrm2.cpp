@@ -1,8 +1,10 @@
-#include "sthrm2.h"
-
 #include <QBluetoothAddress>
 
-STHrm2::STHrm2(QObject *parent) : QObject(parent)
+#include "sthrm2.h"
+
+//#define DEBUG_DATA 1
+
+STHrm2::STHrm2(QObject *parent) : QObject(parent), m_battery(0)
 {
     socket = new QBluetoothSocket(QBluetoothServiceInfo::RfcommProtocol);
     connect(socket, SIGNAL(readyRead()), this, SLOT(readSocket()));
@@ -19,10 +21,20 @@ bool STHrm2::start()
     return true;
 }
 
+bool STHrm2::stop()
+{
+    socket->disconnectFromService();
+}
+
 void STHrm2::readSocket()
 {
+#ifdef DEBUG_DATA
+    QByteArray data=socket->readAll();
+    qDebug() << data.toHex();
+#else
     while (socket->bytesAvailable())
            readByte();
+#endif
 }
 
 void STHrm2::readByte()
@@ -38,7 +50,7 @@ void STHrm2::readByte()
 
     c=(quint8)tmp;
 
-    //qDebug() << c;
+    qDebug() << "C: " << QByteArray::number(c, 16) << " @: " << m_state;
 
     switch (m_state) {
     // Looking for start message byte 0xFA
@@ -57,6 +69,7 @@ void STHrm2::readByte()
     case StateMarker2:
         m_mark2=c;
         if (m_mark1+m_mark2!=0xFF) {
+            qWarning("Invalid marker sum");
             m_state=StateInitial;
             return;
         }
